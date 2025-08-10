@@ -1,27 +1,45 @@
-const myLibrary = [];
-
-function Book(title, author, pages, isRead) {
-    this.title = title;
-    this.author = author;
-    this.pages = pages;
-    this.isRead = isRead;
-    this.id = crypto.randomUUID();
+class Book {
+    constructor(title, author, pages, isRead) {
+        if (typeof title !== "string" || title.trim() === "") {
+            throw new Error("Invalid title.");
+        }
+        if (typeof author !== "string" || author.trim() === "") {
+            throw new Error("Invalid author.");
+        }
+        if (typeof pages !== "number" || isNaN(pages)) {
+            throw new Error("Invalid pages.");
+        }
+        if (typeof isRead !== "boolean") {
+            throw new Error("Invalid read status.");
+        }
+        
+        this.title = title;
+        this.author = author;
+        this.pages = pages;
+        this.isRead = isRead;
+        this.id = crypto.randomUUID();
+    }
 }
 
-function addBookToLibrary(title, author, pages, isRead) {
-    if (typeof title !== "string" || title.trim() === "") {
-      throw new Error("Invalid title.");
+class Library {
+    constructor () {
+        this.library = [];
     }
-    if (typeof author !== "string" || author.trim() === "") {
-      throw new Error("Invalid author.");
+
+    addBook(book) {
+        if (!(book instanceof Book)) {
+            throw new Error("Invalid book object.");
+        }
+        this.library.push(book);
     }
-    if (typeof pages !== "number" || isNaN(pages)) {
-      throw new Error("Invalid pages.");
+
+    removeBook(id) {
+        this.library = this.library.filter(book => book.id !== id);
     }
-    if (typeof isRead !== "boolean") {
-      throw new Error("Invalid read status.");
+
+    getBooks(){
+        return [...this.library]
     }
-    myLibrary.push(new Book(title, author, pages, isRead));
 }
 
 // Insert new book
@@ -49,11 +67,11 @@ form.addEventListener("submit", function(event) {
     const isRead = isReadValue === "Yes";
 
     try {
-        addBookToLibrary(title, author, pages, isRead);
+        const book = new Book(title, author, pages, isRead);
+        library.addBook(book);
         form.reset();
         insertBookModal.close();
-        updateLibraryTable();
-        console.log("Book added:", myLibrary[myLibrary.length - 1]);
+        updateLibraryTable(library);
     } catch (error) {
         alert(error.message);
     }
@@ -66,7 +84,7 @@ const closeMyLibrary = document.querySelector(".close-myLibrary");
 const myLibraryModal = document.querySelector(".myLibrary-modal");
 
 openMyLibrary.addEventListener("click", function() {
-    updateLibraryTable();
+    updateLibraryTable(library);
     myLibraryModal.showModal();
 });
 
@@ -74,32 +92,43 @@ closeMyLibrary.addEventListener("click", function() {
     myLibraryModal.close();
 });
 
-function updateLibraryTable() {
-    const table = document.querySelector(".myLibrary-modal table");
+function updateLibraryTable(library) {
+    if (!(library instanceof Library)) {
+        throw new Error("Invalid Library.");
+    }
     
+    const bookList = library.getBooks();
+
+    const table = document.querySelector(".myLibrary-modal table");
+
     while (table.rows.length > 1) {
         table.deleteRow(1);
     }
     
-    myLibrary.forEach(book => {
+    bookList.forEach(book => {
         const row = table.insertRow();
-        
         const titleCell = row.insertCell();
-        titleCell.textContent = `${book.title} by ${book.author}`;
-        
+        titleCell.textContent = book.title;
+
+        const authorCell = row.insertCell();
+        authorCell.textContent = book.author;
+
         const pagesCell = row.insertCell();
         pagesCell.textContent = book.pages;
-        
+
         const statusCell = row.insertCell();
         statusCell.textContent = book.isRead ? "Read" : "Not Read";
-        
+
         const actionCell = row.insertCell();
         const deleteButton = document.createElement("button");
         deleteButton.textContent = "Delete";
         deleteButton.onclick = () => {
-            myLibrary = myLibrary.filter(b => b.id !== book.id);
-            updateLibraryTable();
+            library.removeBook(book.id)
+            updateLibraryTable(library);
         };
         actionCell.appendChild(deleteButton);
     });
 }
+
+const library = new Library();
+
